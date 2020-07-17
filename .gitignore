@@ -1,7 +1,7 @@
 .Rproj.user
 .Rhistory
-.RData
 .Ruserdata
-.rds
-.dat
 .Rproj
+*.Rproj
+movielens-tutorial_cache/*
+movielens-tutorial_files/*

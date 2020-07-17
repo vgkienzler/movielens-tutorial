@@ -2,15 +2,16 @@
 # This is not used for the model or for any computation, it is only use to build the report in a dynamic way and
 # centralise section titles in one place
 sec_one <- "Method and workflow"
-sec_two <- "Data preparation and visualisation"
+sec_two <- "Data processing"
 sec_three <- "Modelling"
 sec_four <- "Results"
 sec_five <- "Conclusion"
 
 
 ## ----Data origin parameters, include=FALSE--------------------------------------------------------------------------------------------------
-# If "local_data" is set to FALSE, code will download and process data as if doesn't exist locally.
-# If set to "TRUE", code will load local data to speed up runtime.
+# If "local_data" is set to FALSE, the coded will download and process data as if doesn't exist locally.
+# If set to "TRUE", the code will load local data to lower execution time.
+# This variable is used in the rmarkdown code chunks to be dynamic execution possible.
 local_data <- TRUE
 
 
@@ -29,7 +30,7 @@ library(scales)
 
 
 
-## ----Load local datasets if any, echo=FALSE, results='hide', eval=local_data----------------------------------------------------------------
+## ----Load local datasets if any, echo=FALSE, results='hide', eval=local_data, cache = TRUE--------------------------------------------------
 ## # Load these datasets if they are locally avaiable and local_data == TRUE. Update the path to match your own.
 ## # Otherwise run the r code below which is currently not
 ## # evaluated (evaluate = FALSE).
@@ -130,12 +131,12 @@ save("validation", file = "data/validation.RData")
 # To use locally stored data on the next run of this rmarkdown, set local_data to TRUE
 
 
-## ----Start data exploration and visualisation, results=FALSE--------------------------------------------------------------------------------
+## ----Start data exploration and visualisation, results=FALSE, cache = TRUE------------------------------------------------------------------
 # View the structure of the dataset
 str(train_test)
 
 
-## ----Number of unique movies and users------------------------------------------------------------------------------------------------------
+## ----Number of unique movies and users, message = FALSE, warning = FALSE, cache = TRUE------------------------------------------------------
 # Number of unique movies and users:
 kable(train_test %>% 
         summarize(n_ratings = n(), unique_users = n_distinct(userId), 
@@ -143,7 +144,7 @@ kable(train_test %>%
       caption = "Number of unique movies and users")
 
 
-## ----Rating distribution, fig.align='center'------------------------------------------------------------------------------------------------
+## ----Rating distribution, fig.align='center', cache = TRUE----------------------------------------------------------------------------------
 # Rating distribution
 theme_set(theme_fivethirtyeight(base_size = 10))
 theme_update(axis.title = element_text())
@@ -155,12 +156,12 @@ train_test %>% ggplot(aes(rating)) +
   scale_y_continuous(labels = comma)
 
 
-## ----Mean and median------------------------------------------------------------------------------------------------------------------------
+## ----Mean and median, cache = TRUE----------------------------------------------------------------------------------------------------------
 mean(train_test$rating)
 median(train_test$rating)
 
 
-## ----Ratings per user and per movie, warning=FALSE, message=FALSE---------------------------------------------------------------------------
+## ----Ratings per user and per movie, warning=FALSE, message=FALSE, cache = TRUE-------------------------------------------------------------
 # Number of ratings received by the 10 most rated movies
 movie_ratings <- train_test %>% 
   select(movieId, title, rating) %>% 
@@ -168,16 +169,16 @@ movie_ratings <- train_test %>%
   summarize(n_ratings = n(), average = mean(rating))
 
 kable(head(movie_ratings %>% arrange(desc(n_ratings)), 10), 
-  caption = "Ratings for the 10 most rated movies")
+  caption = "Ratings of the 10 most rated movies")
 
 
-## ----Nb ratings for the 10 least rated movies, message=FALSE--------------------------------------------------------------------------------
+## ----Nb ratings for the 10 least rated movies, message=FALSE, cache = TRUE------------------------------------------------------------------
 # Number of ratings received by the 10 least rated movies
 kable(head(movie_ratings %>% arrange(n_ratings), 10), 
-      caption = "Ratings for the 10 least rated movies")
+      caption = "Ratings of the 10 least rated movies")
 
 
-## ----Histogram of number of ratings per movie, fig.align='center', message=FALSE------------------------------------------------------------
+## ----Histogram of number of ratings per movie, fig.align='center', message=FALSE, cache = TRUE----------------------------------------------
 # Histogram of the number of ratings per movie
 # (limiting plotting at 500 ratings per movie max for visibility).
 ratings_per_movie <- movie_ratings %>%
@@ -191,7 +192,7 @@ ggplot(ratings_per_movie, aes(x=n_ratings)) +
   scale_y_continuous(labels = comma)
 
 
-## ----Histogram of number of ratings per user,  fig.align='center', message=FALSE------------------------------------------------------------
+## ----Histogram of number of ratings per user,  fig.align='center', message=FALSE, cache = TRUE----------------------------------------------
 # Histogram of the number of ratings per user
 # (limiting plotting at 500 ratings per user max for visibility).
 user_ratings <- train_test %>% 
@@ -209,13 +210,11 @@ ggplot(ratings_per_movie, aes(x=n_ratings)) +
   ylab("Count") +
   scale_y_continuous(labels = comma)
 
-
-
-## ----Max number of rating per user----------------------------------------------------------------------------------------------------------
+# Maximum of number of ratings per user
 max(user_ratings$n_ratings)
 
 
-## ----Density of movie averages,  fig.align='center'-----------------------------------------------------------------------------------------
+## ----Density of movie averages,  fig.align='center', cache = TRUE---------------------------------------------------------------------------
 # Density of movie averages
 ggplot(movie_ratings, mapping = aes(x=average)) +
   geom_density(fill="lightblue", alpha=0.5) +
@@ -225,7 +224,7 @@ ggplot(movie_ratings, mapping = aes(x=average)) +
   scale_y_continuous(labels = comma)
 
 
-## ----Number of ratings vs. movie average,  fig.align='center', message=FALSE----------------------------------------------------------------
+## ----Number of ratings vs. movie average,  fig.align='center', message=FALSE, cache = TRUE--------------------------------------------------
 # Graph of the number of ratings per movie vs. movie average
 movie_ratings %>% ggplot(aes(x=average, y=n_ratings)) +
   geom_point(alpha=0.2) +
@@ -243,7 +242,7 @@ movie_ratings %>% ggplot(aes(x=average, y=n_ratings)) +
   scale_y_continuous(labels = comma)
 
 
-## ----Distribution of user averages,  fig.align='center'-------------------------------------------------------------------------------------
+## ----Distribution of user averages,  fig.align='center', cache = TRUE-----------------------------------------------------------------------
 # Density plot of the user averages
 ggplot(user_ratings, mapping = aes(x=average, y = after_stat(count))) +
   geom_density(fill="lightblue", alpha=0.5) +
@@ -253,7 +252,7 @@ ggplot(user_ratings, mapping = aes(x=average, y = after_stat(count))) +
   scale_y_continuous(labels = comma)
 
 
-## ----Means of user averages and movie averages----------------------------------------------------------------------------------------------
+## ----Means of user averages and movie averages, cache = TRUE--------------------------------------------------------------------------------
 # Comparison of mean of user averages and movie averages
 message("Mean of user averages: ", round(mean(user_ratings$average), 2))
 message("Mean of movie averages: ", round(mean(movie_ratings$average), 2))
@@ -263,29 +262,32 @@ message("Mean of movie averages: ", round(mean(movie_ratings$average), 2))
 rm(ratings_per_users, user_ratings, ratings_per_movie, movie_ratings)
 
 
-## ----Genre of the 10 most rated movies, message=FALSE---------------------------------------------------------------------------------------
+## ----Genre of the 10 most rated movies, message=FALSE, cache = TRUE-------------------------------------------------------------------------
 kable(head(train_test %>% group_by(title, genres) %>% 
        summarize(n_rating = n()) %>% 
        arrange(desc(n_rating)), 10),
       caption = "Genres of the 10 most rated movies")
 
 
-## ----Distinct genre groupings---------------------------------------------------------------------------------------------------------------
+## ----Distinct genre groupings, cache = TRUE-------------------------------------------------------------------------------------------------
 n_distinct(train_test$genres)
 
 
-## ----10 most common genres combinations-----------------------------------------------------------------------------------------------------
-kable(t(t(head(sort(table(train_set$genres), decreasing = TRUE), 10))), 
+## ----10 most common genres combinations, cache = TRUE---------------------------------------------------------------------------------------
+
+genre_comb <- data.frame(sort(table(train_test$genres), decreasing = TRUE))
+colnames(genre_comb) <- c("Combination", "Count")
+kable(t(t(head(genre_comb, 10))), 
       caption = "The 10 most common genre combinations")
 
 
-## ----Extraction and counting of unique genres-----------------------------------------------------------------------------------------------
+## ----Extraction and counting of unique genres, cache = TRUE---------------------------------------------------------------------------------
 list_genres <- unique(unlist(strsplit(train_test$genres, split = "\\|")))
 print(list_genres)
 print(length(list_genres))
 
 
-## ----Histogram of the number of movie releases per year, fig.align='center'-----------------------------------------------------------------
+## ----Histogram of the number of movie releases per year, fig.align='center', cache = TRUE---------------------------------------------------
 # Distribution of movie releases per year of release.
 year_movie <- train_test %>% distinct(movieId, .keep_all = TRUE)
 
@@ -299,7 +301,7 @@ ggplot(year_movie, aes(x=year)) +
   scale_y_continuous(labels = comma)
 
 
-## ----Number of ratings vs. year of release, message = FALSE, fig.align='center'-------------------------------------------------------------
+## ----Number of ratings vs. year of release, message = FALSE, fig.align='center', cache = TRUE-----------------------------------------------
 # Number of ratings vs. year of release.
 rating_year <- train_test %>% 
   group_by(year) %>% 
@@ -313,14 +315,14 @@ ggplot(train_test, aes(x=year)) +
   scale_y_continuous(labels = comma)
 
 
-## ----10 release years with most ratings, message=FALSE--------------------------------------------------------------------------------------
+## ----10 release years with most ratings, message=FALSE, cache = TRUE------------------------------------------------------------------------
 kable(head(train_test %>% group_by(year) %>% 
        summarize(n_rating = n()) %>% 
        arrange(desc(n_rating)), 10), 
       caption = "10 release years with the most ratings")
 
 
-## ----Nb of ratings per movie vs. year of release, message=FALSE, fig.align='center'---------------------------------------------------------
+## ----Nb of ratings per movie vs. year of release, message=FALSE, fig.align='center', cache = TRUE-------------------------------------------
 # Nb or ratings per movie vs. release year of the movies.
 rating_movie_year <- train_test %>%
        group_by(movieId, year) %>%
@@ -338,10 +340,10 @@ ggplot(rating_movie_year, aes(x=year, y=movie_average)) +
 
 ## ---- results='hide', include=FALSE---------------------------------------------------------------------------------------------------------
 # Do some cleaning before moving on
-rm(rating_year, year_movie, list_genres, rating_movie_year)
+rm(rating_year, year_movie, list_genres, rating_movie_year, genre_comb)
 
 
-## ----Oldest and youngest ratings------------------------------------------------------------------------------------------------------------
+## ----Oldest and youngest ratings, cache = TRUE----------------------------------------------------------------------------------------------
 # Finding the youngest and oldest ratings.
 birthyear_rating <- train_test  %>%
   mutate(date = as_datetime(timestamp)) %>%
@@ -351,7 +353,7 @@ message("Year of the oldest rating: ", year(min(birthyear_rating$ts_year)))
 message("Year of the youngest rating: ", year(max(birthyear_rating$ts_year)))
 
 
-## ----Number of ratings per year, message = FALSE, fig.align='center'------------------------------------------------------------------------
+## ----Number of ratings per year, message = FALSE, fig.align='center', cache = TRUE----------------------------------------------------------
 # Number of ratings done per year
 ratings_year <- birthyear_rating %>%
   group_by(ts_year) %>%
@@ -371,14 +373,14 @@ ratings_year %>% ggplot(aes(ts_year, n_rating)) +
 rm(birthyear_rating, ratings_year)
 
 
-## ----RMSE function--------------------------------------------------------------------------------------------------------------------------
+## ----RMSE function, cache = TRUE------------------------------------------------------------------------------------------------------------
 # Declare RMSE function:
 RMSE <- function(y_predic, y_real){
   sqrt(mean((y_predic-y_real)^2))
 }
 
 
-## ----Results data frame and updating fuction------------------------------------------------------------------------------------------------
+## ----Results data frame and updating fuction, cache = TRUE----------------------------------------------------------------------------------
 # Create data frame to store the results of the various models
 model_results <- data.frame(
   model_nb = integer(), 
@@ -398,7 +400,7 @@ add_row_results <- function(row, model_nb, new_type, opt_lambda, new_rmse){
 }
 
 
-## ----Improvement function-------------------------------------------------------------------------------------------------------------------
+## ----Improvement function, cache = TRUE-----------------------------------------------------------------------------------------------------
 # Returns the variation in % from model_1 rmse to model_2 rmse.
 improvement <- function(model_1, model_2){
   model_results$rmse[model_2]
@@ -408,7 +410,7 @@ improvement <- function(model_1, model_2){
 }
 
 
-## ----Base model - Naive mean, message=FALSE, warning=FALSE----------------------------------------------------------------------------------
+## ----Base model - Naive mean, message=FALSE, warning=FALSE, cache = TRUE--------------------------------------------------------------------
 # First initial models, naive_rmse
 model_nb <- 1
 mu <- mean(train_set$rating)
@@ -420,7 +422,7 @@ model_results <- add_row_results(model_nb, model_nb, "naive mean", NA, rmse)
 kable(model_results, caption = "Summary of results")
 
 
-## ----Movie effect (regularised), message=FALSE, warning=FALSE-------------------------------------------------------------------------------
+## ----Movie effect (regularised), message=FALSE, warning=FALSE, cache = TRUE-----------------------------------------------------------------
 model_nb <- 2
 # Define a sequence of penalisation factor (lambda) for the regularization.
 lambda <- seq(1, 4, 0.5)
@@ -448,7 +450,7 @@ plot(lambda, rmse)
 
 
 
-## -------------------------------------------------------------------------------------------------------------------------------------------
+## ----Extract best lambda, cache = TRUE------------------------------------------------------------------------------------------------------
 best_lbd <- lambda[which.min(rmse)]
 # Store result in the summary dataframe model_results.
 model_results <- add_row_results(
@@ -462,7 +464,7 @@ kable(model_results, caption = "Summary of results")
 improvement(1,2)
 
 
-## ----User effect (Regularised), message=FALSE, warning=FALSE--------------------------------------------------------------------------------
+## ----User effect (Regularised), message=FALSE, warning=FALSE, cache = TRUE------------------------------------------------------------------
 model_nb <- 3
 # Define a sequence of penalisation factor (lambda) for the regularization.
 lambda <- seq(3, 7, 0.5)
@@ -497,7 +499,7 @@ rmse <- sapply(lambda, rmse_lambda)
 plot(lambda, rmse)
 
 
-## -------------------------------------------------------------------------------------------------------------------------------------------
+## ---- cache = TRUE--------------------------------------------------------------------------------------------------------------------------
 best_lbd <- lambda[which.min(rmse)]
 # Store results in the summary dataframe model_results.
 model_results <- add_row_results(
@@ -511,7 +513,7 @@ kable(model_results, caption = "Summary of results")
 improvement(2,3)
 
 
-## ----Genre effect (regularised), warning=FALSE, message=FALSE-------------------------------------------------------------------------------
+## ----Genre effect (regularised), warning=FALSE, message=FALSE, cache = TRUE-----------------------------------------------------------------
 model_nb <- 4
 # Define a sequence of penalisation factor (lambda) for the regularization.
 lambda <- seq(15, 25, 1)
@@ -563,7 +565,7 @@ kable(model_results, caption = "Summary of results")
 improvement(3,4)
 
 
-## ----Release date effect (regularised), message=FALSE, warning=FALSE------------------------------------------------------------------------
+## ----Release date effect (regularised), message=FALSE, warning=FALSE, cache = TRUE----------------------------------------------------------
 model_nb <- 5
 # Define a sequence of penalisation factor (lambda) for the regularization.
 lambda <- seq(0, 10, 2)
@@ -618,7 +620,7 @@ kable(model_results, caption = "Summary of results")
 improvement(4,5)
 
 
-## ----Date of rating effect (regularised), message=FALSE, warning=FALSE----------------------------------------------------------------------
+## ----Date of rating effect (regularised), message=FALSE, warning=FALSE, cache = TRUE--------------------------------------------------------
 model_nb <- 6
 # Define a sequence of penalisation factor (lambda) for the regularisation.
 lambda <- c(200, 300, 400, 500, 600, 800)
@@ -701,7 +703,7 @@ round(improvement(1,3),2)
 round(improvement(3,6),2)
 
 
-## ----Matrix factorisation - create train and test matries-----------------------------------------------------------------------------------
+## ----Matrix factorisation - create train and test matries, cache = TRUE---------------------------------------------------------------------
 # Load the corresponding package
 library(recosystem)
 
@@ -716,17 +718,17 @@ reco_test <- data_memory(user_index = test_set$userId,
 
 
 
-## ----Create RecoSys object------------------------------------------------------------------------------------------------------------------
+## ----Create RecoSys object, cache = TRUE----------------------------------------------------------------------------------------------------
 reco_obj <- Reco()
 
 
-## ----Train with 10 iterations---------------------------------------------------------------------------------------------------------------
+## ----Train with 10 iterations, cache = TRUE-------------------------------------------------------------------------------------------------
 # Train the algorithm with the default options except for niter 
 # and nthread, without tuning
 reco_obj$train(reco_train, opts = c(nthread = 4, niter = 10))
 
 
-## -------------------------------------------------------------------------------------------------------------------------------------------
+## ----Calculate predictions, cache = TRUE----------------------------------------------------------------------------------------------------
 # Calculate predicted values with 10 iterations
 reco_preds <- reco_obj$predict(reco_test, out_memory())
 rmse <- RMSE(reco_preds, test_set$rating)
@@ -740,13 +742,13 @@ model_results <- add_row_results(
 kable(model_results, caption = "Summary of results")
 
 
-## ----Train with 20 iterations---------------------------------------------------------------------------------------------------------------
+## ----Train with 20 iterations, cache = TRUE-------------------------------------------------------------------------------------------------
 model_nb <- 8
 # Train the algorithm with the default options except for nthread, without tuning
 reco_obj$train(reco_train, opts = c(nthread = 4, niter = 20))
 
 
-## -------------------------------------------------------------------------------------------------------------------------------------------
+## ----Calculate prediction with new model, cache = TRUE--------------------------------------------------------------------------------------
 # Calculate predicted values
 reco_preds <- reco_obj$predict(reco_test, out_memory())
 rmse <- RMSE(reco_preds, test_set$rating)
@@ -762,13 +764,13 @@ kable(model_results, caption = "Summary of results")
 improvement(7, 8)
 
 
-## ---- eval=local_data, echo=FALSE, include=FALSE--------------------------------------------------------------------------------------------
+## ----Download saved reco model, eval=local_data, echo=FALSE, include=FALSE, cache = TRUE----------------------------------------------------
 ## # If local_data this block is executed and the tuning parameters
 ## # reco-opts.rds gets loaded and used.
 ## opts <- readRDS("data/reco-opts.rds")
 
 
-## ----Run tunning function, eval=!local_data, message=FALSE, warning=FALSE-------------------------------------------------------------------
+## ----Run tunning function, eval=!local_data, message=FALSE, warning=FALSE, cache = TRUE-----------------------------------------------------
 # Run the tuning function to generate optimised parameters. This takes time.
 opts <- reco_obj$tune(reco_train, opts = list(nthread  = 4, niter = 10))
 
@@ -778,13 +780,13 @@ ifelse(!dir.exists(file.path("data")), dir.create(file.path("data")), FALSE)
 saveRDS(opts, file = "data/reco-opts.rds")
 
 
-## ----Train model with optimised parameters, message=FALSE, warning=FALSE--------------------------------------------------------------------
+## ----Train model with optimised parameters, message=FALSE, warning=FALSE, cache = TRUE------------------------------------------------------
 model_nb <- 9
 # Train the algorithm with the default options except for nthread, with tuning
 reco_obj$train(reco_train, opts = c(opts$min, nthread = 4, niter = 20))
 
 
-## -------------------------------------------------------------------------------------------------------------------------------------------
+## ----Calculate new predictions with tuned model, cache = TRUE-------------------------------------------------------------------------------
 # Calculate predicted values
 reco_preds <- reco_obj$predict(reco_test, out_memory())
 rmse <- RMSE(reco_preds, test_set$rating)
@@ -800,10 +802,10 @@ kable(model_results, caption = "Summary of results")
 improvement(8, 9)
 
 
-## ----RMSE Linear Model applied to validation set, message=FALSE, warning=FALSE--------------------------------------------------------------
+## ----RMSE Linear Model applied to validation set, message=FALSE, warning=FALSE, cache = TRUE------------------------------------------------
 validation <- validation %>% mutate(date = as_datetime(timestamp))
 
-# Apply all the biases to the variables in the validation set.
+# Apply all the biases to the validation set.
 mugyd_preds <- validation %>%
   left_join(movie_reg_avg, by="movieId") %>%
   left_join(user_reg_avg, by="userId") %>%
@@ -827,7 +829,7 @@ model_results <- add_row_results(
 kable(model_results, caption = "Summary of results")
 
 
-## ----RMSE Matrix Factorisation model applied to validation set,  message=FALSE, warning=FALSE-----------------------------------------------
+## ----RMSE Matrix Factorisation model applied to validation set,  message=FALSE, warning=FALSE, cache = TRUE---------------------------------
 
 # Prepare the validation data in the suitable format.
 reco_validation <- data_memory(user_index = validation$userId,

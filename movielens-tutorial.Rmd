@@ -3,13 +3,20 @@ title: "MovieLens Machine Learning Tutorial"
 author: "Vincent G. Kienzler"
 date: "18/11/2019"
 output:
+  html_document:
+    theme: cosmo
+    number_section: yes
+    toc: true
+    toc_depth: 2
+    toc_float:
+        collapsed: false
+        smooth_scroll: false
   pdf_document:
     number_section: yes
+    highlight: tango
     toc: true
     toc_depth: 3
     fig_crop: no
-  html_document:
-    number_section: yes
 ---
 
 ```{r setup, include=FALSE, purl=FALSE}
@@ -17,13 +24,13 @@ knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_chunk$set(warning = FALSE)
 ```
 
-# Overview
+# Tutorial overview
 
-## Purpose of the tutorial
+## Purpose
 
-This document was developed as a tutorial and work sample for a team of software engineers and business analysts engaged in a machine learning training to improve or develop their skills in this field. The team was invited to enroll in their choice of courses from the Harvard Professional Certificate in Data Science[^10], and this tutorial served both as a guide and as a work sample for the capstone project of the course. It is therefore designed for an audience which already has some knowledge of data science, as the core concepts are only briefly summarised. The models and the workflow, however, are developed in details.  
+This data-science tutorial and work sample (programmed in R) was developed for a start-up team of software engineers and business analysts engaged in a machine learning training. The team members were invited to enroll in their choice of courses from the Harvard Professional Certificate in Data Science[^10], and this tutorial served both as a guide and as a work sample for the capstone project of the course. It is therefore designed for an audience which already has some knowledge of data science, as the core concepts are only briefly summarised. The models and the workflow, however, are developed in details.  
 
-The r code and cleaned datasets for this tutorial can be accessed here: [https://github.com/vgkienzler/movielens-tutorial.git](https://github.com/vgkienzler/movielens-tutorial.git)
+The R code and clean datasets for this tutorial can be accessed here: [https://github.com/vgkienzler/movielens-tutorial.git](https://github.com/vgkienzler/movielens-tutorial.git)
 
 Additional, well-detailed explanations of the various concepts mentioned in this tutorial can be found in the following resources:
 
@@ -41,17 +48,17 @@ Additional, well-detailed explanations of the various concepts mentioned in this
 [^13]: https://web.stanford.edu/~hastie/ElemStatLearn/
 [^14]: http://appliedpredictivemodeling.com/toc
 
-## About the machine learning challenge
+## The challenge
 
-Recommendation systems have become an essential part of any e-business website or service. Their purpose is to suggest relevant items like movies, news articles, books or goods to users or clients. These items are ranked based on their predicted relevancy to the target user, and only the most relevant are suggested.  
-
-Two different machine learning algorithms are developed here: a linear model and a matrix factorisation model. Their goal is to predict movie ratings from a set of features (also referred to as independent variables or predictors). These algorithms are trained on a dataset of 10 million ratings. This dataset contains ratings of about 10,000 movies by 72,000 users. It is publicly available [here](https://grouplens.org/datasets/movielens/10m/).  
+This tutorial develops two different machine learning algorithms for a movie recommendation system: a linear model and a matrix factorisation model. Their goal is to predict movie ratings for a particular movie and user, based on a set of features (also referred to as independent variables or predictors). These algorithms are trained on a dataset of 10 million ratings. This dataset contains ratings of about 10,000 movies by 72,000 users. It is publicly available [here](https://grouplens.org/datasets/movielens/10m/).  
 
 Because the dataset contains both a series of known ratings ${Y}$ (outcomes) and its associated series of features ($X_{1}, X_{2}, \cdots, X_{p}$), the two algorithms can be developed with various tuning options and parameters and their respective predictions $\hat{Y}$ compared to the real outcome ${Y}$ in the dataset. This comparison allows to estimate which model is the best at predicting the outcome. The best one can then be applied to new and unknown data, in order to make useful rating predictions.
 
 The results show that matrix factorisation outperforms largely the linear model (matrix factorisation RMSE: 0.79445, linear model RMSE: 0.86495). This tutorial details what such results mean and how they have been achieved.
 
-## About recommendation systems
+## Recommendation systems
+
+Recommendation systems have become an essential part of any e-business website or service. Their purpose is to suggest relevant items like movies, news articles, books or goods to users or clients. These items are ranked based on their predicted relevancy to the target user, and only the most relevant are suggested.
 
 Recommendation systems are based on different types of algorithms, which are usually divided into two main categories: **collaborative filtering** and **content-based** algorithms, depending on what data is used to make the predictions.
 
@@ -59,15 +66,15 @@ Recommendation systems are based on different types of algorithms, which are usu
 
 **Content-based** algorithms, on the other hand, use information about the user (such as occupation, age, gender, location or ethnicity) and the product (such as genre, actors and year of release for a movie) to make the recommendations.
 
-Most recent recommendation systems rely on a mix of both methods. The two algorithms introduced here are largely based on collaborative filtering since no information is available about the users, other than their ratings. Only two complementary information are available about the movies: the genre of the movie, and the year of release of the movie.
+Most recent recommendation systems rely on a mix of both methods. The two algorithms introduced here are largely based on collaborative filtering since no information is available about the users, other than their ratings of a given set of movies. Only two complementary pieces of information are available about the movies: the genre of the movie and the year of release of the movie.
 
-## Structure of the tutorial
+## Document structure
 
 ```{r Naming report sections for cross-reference, include=FALSE}
 # This is not used for the model or for any computation, it is only use to build the report in a dynamic way and
 # centralise section titles in one place
 sec_one <- "Method and workflow"
-sec_two <- "Data preparation and visualisation"
+sec_two <- "Data processing"
 sec_three <- "Modelling"
 sec_four <- "Results"
 sec_five <- "Conclusion"
@@ -77,11 +84,11 @@ This document is organised as follows:
 
 * Section **2. `r I(sec_one)`** introduces the two models and provides details about their algorithms, as well as the workflow.
 
-* Section **3. `r I(sec_two)`** provides a detailed account of the data preparation process. It also analyses and visualises all the features in the dataset.
+* Section **3. `r I(sec_two)`** provides a detailed account of the data preparation, analysis and visualisation process.
 
 * Section **4. `r I(sec_three)`** develops and applies the two models and their respective algorithms. It assesses the models' ability to predict movie ratings.
 
-* Section **5. `r I(sec_four)`** presents the final results, when the models are applied to the `validation` dataset
+* Section **5. `r I(sec_four)`** presents the final results, when the models are applied to the `validation` dataset;
 
 * Section **6. `r I(sec_five)`** discusses these results and concludes.
 
@@ -221,8 +228,9 @@ The diagram below summarises the process (credit: Wikipedia, article "Data Visua
 [^4]: https://en.wikipedia.org/wiki/Data_visualization
 
 ```{r Data origin parameters, include=FALSE}
-# If "local_data" is set to FALSE, code will download and process data as if doesn't exist locally.
-# If set to "TRUE", code will load local data to speed up runtime.
+# If "local_data" is set to FALSE, the coded will download and process data as if doesn't exist locally.
+# If set to "TRUE", the code will load local data to lower execution time.
+# This variable is used in the rmarkdown code chunks to be dynamic execution possible.
 local_data <- TRUE
 ```
 
@@ -230,7 +238,7 @@ local_data <- TRUE
 
 ## Data preparation
 
-Let's start with downloading and preparing the data. Running each of these blocks is somewhat time consuming. For this reason some important datasets (`movielens`, `train_set`, `test_set`, `validation`) will be saved for future use in order to save time.
+Let's start with downloading and preparing data. Running each of these blocks is somewhat time consuming. For this reason, some important datasets (`movielens`, `train_set`, `test_set`, `validation`) are saved for future use, in order to save time.
 
 **Step 1** - Load the packages needed:
 ```{r Load packages, results='hide', message = FALSE, warning = FALSE}
@@ -248,7 +256,7 @@ library(scales)
 
 ```
 
-```{r Load local datasets if any, echo=FALSE, results='hide', eval=local_data}
+```{r Load local datasets if any, echo=FALSE, results='hide', eval=local_data, cache = TRUE}
 # Load these datasets if they are locally avaiable and local_data == TRUE. Update the path to match your own.
 # Otherwise run the r code below which is currently not
 # evaluated (evaluate = FALSE).
@@ -348,15 +356,15 @@ save("train_set", file = "data/train_set.RData")
 save("validation", file = "data/validation.RData")
 # To use locally stored data on the next run of this rmarkdown, set local_data to TRUE
 ```
-The **golden rule of machine learning** is that the validation data should *never* be used to fit or train the models in any way. Validation data should only be used to provide an unbiased evaluation of a model, close to how the models would perform on unknown data. If learnings from validation data were included in the model, this would not be possible. Only the `train_set`, `test_set` and `train_test` (which includes both train and test sets) can be used to explore the data, make model choices, refine parameters and fit the models.
+The **golden rule of machine learning** is that the validation data should *never* be used to fit or train the models, in any way, even during data exploration, since it can inform decision making about feature engineering or data modelling. Validation data should only be used to provide an unbiased evaluation of a model, close to how the models would perform on unknown data. If any learning based on the validation data were included in the model, this unbiased estimate would not be possible. Only the `train_set`, `test_set` and `train_test` (which includes both train and test sets) can be used to explore the data, make modelling choices, refine parameters and fit the models.
 
-## Data exploration and visualisation
+## Exploration and visualisation
 
 ### General overview
 
 Let's explore the `train_test` dataset.
 What is the structure of the dataset? The `str()` function returns the size of the dataset as well as the class of each feature (chr, num, int, factor) and the values of the factors, if any. It's a good place to start.
-```{r Start data exploration and visualisation, results=FALSE}
+```{r Start data exploration and visualisation, results=FALSE, cache = TRUE}
 # View the structure of the dataset
 str(train_test)
 ```
@@ -364,29 +372,29 @@ The dataset has 8 columns, also called variables, input variables, features or p
 
 * `userId`: an integer which identifies the user who made the rating,  
 
-* `movieId`: a numerical which identifies the movie the rating refer to,  
+* `movieId`: a numerical which identifies the movie the rating refers to,  
 
-* `rating`: a numerical, the rating from `userId` on `movieId`,  
+* `rating`: a numerical between 0.5 and 5, the rating from `userId` on `movieId`,  
 
 * `timestamp`: an integer which contains information about the date and time of the rating,  
 
-* `title`: a character string, which contains the name of the movie. This column is extracted from the column `ttyr` which is kept for verification purposes,  
+* `title`: a character string, which contains the name of the movie. This column is extracted from the column `ttyr` which is kept in the dataset for verification purposes,  
 
 * `year`: an integer, the year of the release data of the movie,  
 
-* `genres`: a character string, which list all the genres of the movie.  
+* `genres`: a character string, which lists all the genres of the movie.  
 
-Now let's see how many ratings, *unique* movies and *unique* users there are in the dataset:
-```{r Number of unique movies and users}
+Now let's see how many ratings, *unique* movies and *unique* users are included in the dataset.
+```{r Number of unique movies and users, message = FALSE, warning = FALSE, cache = TRUE}
 # Number of unique movies and users:
 kable(train_test %>% 
         summarize(n_ratings = n(), unique_users = n_distinct(userId), 
                   unique_movies = n_distinct(movieId)), 
       caption = "Number of unique movies and users")
 ```
-
-What is the distribution of the ratings? As the histogram below shows, ratings range from 0.5 to 5 and users tend to give ratings of 3 and above. Exact ratings (1,2,3,4 and 5) are more frequent than intermediate ratings (.5).
-```{r Rating distribution, fig.align='center'}
+  
+  What is the distribution of the ratings? As the histogram below shows, ratings range from 0.5 to 5 and users tend to give ratings of 3 and above. Exact ratings (1,2,3,4 and 5) are more frequent than intermediate ratings (.5).
+```{r Rating distribution, fig.align='center', cache = TRUE}
 # Rating distribution
 theme_set(theme_fivethirtyeight(base_size = 10))
 theme_update(axis.title = element_text())
@@ -398,8 +406,8 @@ train_test %>% ggplot(aes(rating)) +
   scale_y_continuous(labels = comma)
 ```
 
-What is the mean and median values of the ratings? The mean is lower than the median, meaning that the distribution is skewed to the left. Users give on average ratings of 3.5, with as many users giving a rating of 4 than giving a rating below 4.
-```{r Mean and median}
+What is the mean and median values of the ratings? The mean is lower than the median, meaning that the distribution is skewed to the left. Users give on average ratings of 3.5, with as many users giving a rating of 4 or higher than giving a rating below 4.
+```{r Mean and median, cache = TRUE}
 mean(train_test$rating)
 median(train_test$rating)
 ```
@@ -407,7 +415,7 @@ median(train_test$rating)
 ### Distribution of ratings per user and movie
 
 Let's look at the distribution of the ratings per user and movie. How many ratings have the 10 most rated movies received?
-```{r Ratings per user and per movie, warning=FALSE, message=FALSE}
+```{r Ratings per user and per movie, warning=FALSE, message=FALSE, cache = TRUE}
 # Number of ratings received by the 10 most rated movies
 movie_ratings <- train_test %>% 
   select(movieId, title, rating) %>% 
@@ -415,18 +423,18 @@ movie_ratings <- train_test %>%
   summarize(n_ratings = n(), average = mean(rating))
 
 kable(head(movie_ratings %>% arrange(desc(n_ratings)), 10), 
-  caption = "Ratings for the 10 most rated movies")
+  caption = "Ratings of the 10 most rated movies")
 ```
 
 How many ratings have the 10 least rated movies received?
-```{r Nb ratings for the 10 least rated movies, message=FALSE}
+```{r Nb ratings for the 10 least rated movies, message=FALSE, cache = TRUE}
 # Number of ratings received by the 10 least rated movies
 kable(head(movie_ratings %>% arrange(n_ratings), 10), 
-      caption = "Ratings for the 10 least rated movies")
+      caption = "Ratings of the 10 least rated movies")
 ```
 
 To get a better sense of how many ratings movies have received, let's plot an histogram of the number of ratings per movie. As the histogram shows, most movies have less than 100 ratings, and the number of ratings per movie varies significantly.
-```{r Histogram of number of ratings per movie, fig.align='center', message=FALSE}
+```{r Histogram of number of ratings per movie, fig.align='center', message=FALSE, cache = TRUE}
 # Histogram of the number of ratings per movie
 # (limiting plotting at 500 ratings per movie max for visibility).
 ratings_per_movie <- movie_ratings %>%
@@ -441,7 +449,7 @@ ggplot(ratings_per_movie, aes(x=n_ratings)) +
 ```
    
 Similarly, the distribution of the number of ratings per users gives a sense of how many ratings viewers have given. Most users made less than 100 ratings, but one viewer made as much as 6616 ratings!
-```{r Histogram of number of ratings per user,  fig.align='center', message=FALSE}
+```{r Histogram of number of ratings per user,  fig.align='center', message=FALSE, cache = TRUE}
 # Histogram of the number of ratings per user
 # (limiting plotting at 500 ratings per user max for visibility).
 user_ratings <- train_test %>% 
@@ -459,16 +467,14 @@ ggplot(ratings_per_movie, aes(x=n_ratings)) +
   ylab("Count") +
   scale_y_continuous(labels = comma)
 
-```
-     
-```{r Max number of rating per user}
+# Maximum of number of ratings per user
 max(user_ratings$n_ratings)
 ```
 
 ### Distribution of rating averages per user and movie
 
-Now let's look at the distribution of the rating average per movie.
-```{r Density of movie averages,  fig.align='center'}
+Now let's look at the distribution of the rating average per movie. As the density plot below shows, lots of movies have rating averages between 3 and 4.  
+```{r Density of movie averages,  fig.align='center', cache = TRUE}
 # Density of movie averages
 ggplot(movie_ratings, mapping = aes(x=average)) +
   geom_density(fill="lightblue", alpha=0.5) +
@@ -478,10 +484,8 @@ ggplot(movie_ratings, mapping = aes(x=average)) +
   scale_y_continuous(labels = comma)
 ```
   
-As the density plot shows, lots of movies have an average between 3 and 4.  
-
-Do movies with higher average have more ratings? Indeed, it seems that the higher a movie average, the higher the number of ratings.
-```{r Number of ratings vs. movie average,  fig.align='center', message=FALSE}
+  Do movies with higher average have more ratings? Indeed, as the graph below shows, it seems that the higher a movie average, the higher the number of ratings.
+```{r Number of ratings vs. movie average,  fig.align='center', message=FALSE, cache = TRUE}
 # Graph of the number of ratings per movie vs. movie average
 movie_ratings %>% ggplot(aes(x=average, y=n_ratings)) +
   geom_point(alpha=0.2) +
@@ -499,8 +503,8 @@ movie_ratings %>% ggplot(aes(x=average, y=n_ratings)) +
   scale_y_continuous(labels = comma)
 ```
   
-What is the distribution of averages per users?
-```{r Distribution of user averages,  fig.align='center'}
+  What is the distribution of averages per users?
+```{r Distribution of user averages,  fig.align='center', cache = TRUE}
 # Density plot of the user averages
 ggplot(user_ratings, mapping = aes(x=average, y = after_stat(count))) +
   geom_density(fill="lightblue", alpha=0.5) +
@@ -510,8 +514,8 @@ ggplot(user_ratings, mapping = aes(x=average, y = after_stat(count))) +
   scale_y_continuous(labels = comma)
 ```
   
-As this density plot shows, a large proportion of the users give ratings of 3.5 and above. Let's have a look at the means of user averages and movie averages. The results show that the mean of user averages is higher than the mean of movie averages, which is explained by the fact that movies with higher ratings get rated more.
-```{r Means of user averages and movie averages}
+  As this density plot shows, a large proportion of the users gives ratings of 3.5 and above. Let's have a look at the means of user averages and movie averages. The results show that the mean of user averages is higher than the mean of movie averages, which can be explained by the fact that movies with higher ratings get rated more.
+```{r Means of user averages and movie averages, cache = TRUE}
 # Comparison of mean of user averages and movie averages
 message("Mean of user averages: ", round(mean(user_ratings$average), 2))
 message("Mean of movie averages: ", round(mean(movie_ratings$average), 2))
@@ -521,43 +525,48 @@ message("Mean of movie averages: ", round(mean(movie_ratings$average), 2))
 rm(ratings_per_users, user_ratings, ratings_per_movie, movie_ratings)
 ```
 
-### Exploring the genres, year, and time stamps
+### Exploring the genres, years of release, and time stamps
 
-The previous section has provided great insights about the distribution of ratings and rating averages per users and movies. In this section the genres, year and time stamps of the ratings and movies are analysed.
+The previous section has provided great insights about the distribution of ratings and rating averages per users and movies. In this section the genres, years of release and time stamps of the ratings and movies are analysed.
 
 #### Genres
 
 Let's start with the genre of the 10 most rated movies.
-```{r Genre of the 10 most rated movies, message=FALSE}
+```{r Genre of the 10 most rated movies, message=FALSE, cache = TRUE}
 kable(head(train_test %>% group_by(title, genres) %>% 
        summarize(n_rating = n()) %>% 
        arrange(desc(n_rating)), 10),
       caption = "Genres of the 10 most rated movies")
 ```
   
-  As the table shows, some movies have more than one genre. Let's see how many different groupings of genres exist.
-```{r Distinct genre groupings}
+  As the table shows, some movies have more than one genre. How many different groupings of genres exist in the dataset?
+```{r Distinct genre groupings, cache = TRUE}
 n_distinct(train_test$genres)
 ```
   
   Let's see what are the 10 most common genre combinations.
-```{r 10 most common genres combinations}
-kable(t(t(head(sort(table(train_set$genres), decreasing = TRUE), 10))), 
+```{r 10 most common genres combinations, cache = TRUE}
+
+genre_comb <- data.frame(sort(table(train_test$genres), decreasing = TRUE))
+colnames(genre_comb) <- c("Combination", "Count")
+kable(t(t(head(genre_comb, 10))), 
       caption = "The 10 most common genre combinations")
 ```
   
+  
   It is also possible to extract the list of unique genres and count them.
-```{r Extraction and counting of unique genres}
+```{r Extraction and counting of unique genres, cache = TRUE}
 list_genres <- unique(unlist(strsplit(train_test$genres, split = "\\|")))
 print(list_genres)
 print(length(list_genres))
 ```
-There are 19 different unique genres. Some movies have no genre listed, and there is a total of 797 different combination of genres.
+  
+  There are 19 different unique genres. Some movies have no genre listed, and there is a total of 797 different combinations of genres.
 
 #### Year of release
 
 Let's look at the number of movie releases per year.
-```{r Histogram of the number of movie releases per year, fig.align='center'}
+```{r Histogram of the number of movie releases per year, fig.align='center', cache = TRUE}
 # Distribution of movie releases per year of release.
 year_movie <- train_test %>% distinct(movieId, .keep_all = TRUE)
 
@@ -571,10 +580,10 @@ ggplot(year_movie, aes(x=year)) +
   scale_y_continuous(labels = comma)
 ```
   
-   Most of the releases have taken place after 1995. The last movie release in the dataset is `r I(max(year_movie$year))`. Old movies make only a small part of the dataset.
+   Most of the releases have taken place after 1995. The latest movie in the dataset was released in `r I(max(year_movie$year))`. Old movies make only a small part of the dataset.
    
-  What is the number of ratings per release year? As the histogram below shows, few ratings are about old movies. This can both mean that the proportion of old movies in the dataset is low and that viewers are less interested in these old movies.
-```{r Number of ratings vs. year of release, message = FALSE, fig.align='center'}
+  What is the number of ratings per year of release? As the histogram below shows, older movies have few ratings. This can both mean that the proportion of old movies in the dataset is low, and/or that viewers are less interested in these old movies. It is easy to test which hypothesis is correct by plotting the average number of ratings per movie per year of release. 
+```{r Number of ratings vs. year of release, message = FALSE, fig.align='center', cache = TRUE}
 # Number of ratings vs. year of release.
 rating_year <- train_test %>% 
   group_by(year) %>% 
@@ -589,15 +598,15 @@ ggplot(train_test, aes(x=year)) +
 ```
   
   What are the 10 release years with the most ratings?
-```{r 10 release years with most ratings, message=FALSE}
+```{r 10 release years with most ratings, message=FALSE, cache = TRUE}
 kable(head(train_test %>% group_by(year) %>% 
        summarize(n_rating = n()) %>% 
        arrange(desc(n_rating)), 10), 
       caption = "10 release years with the most ratings")
 ```
   
-  As the table shows, movies from the 90s have the most ratings, followed by movies in the 2000s. In order to understand better the interest of viewers in old and new movies, let's see what's the average number of ratings per movie for each year of release. As the histogram below shows, older movies have, on average, a lower count of ratings than newer movies, except for the most recent ones (movies released after 2003). This is likely due to the fact that Very old movies are less interesting for contemporary viewers, and the most recent movies have been seen by fewer people because they are newer.
-```{r Nb of ratings per movie vs. year of release, message=FALSE, fig.align='center'}
+  As the table shows, movies from the 90s have the most ratings, followed by movies in the 2000s. In order to understand better the interest of viewers in old and new movies, let's see what is the average number of ratings per movie for each year of release. As the histogram below shows, older movies have, on average, a lower count of ratings than newer movies, except for the most recent ones (movies released after 2003). This is likely due to the fact that very old movies are less interesting for contemporary viewers, and the most recent movies have been seen by fewer people because they have only been on the market for a short period of time.
+```{r Nb of ratings per movie vs. year of release, message=FALSE, fig.align='center', cache = TRUE}
 # Nb or ratings per movie vs. release year of the movies.
 rating_movie_year <- train_test %>%
        group_by(movieId, year) %>%
@@ -615,14 +624,14 @@ ggplot(rating_movie_year, aes(x=year, y=movie_average)) +
 
 ```{r, results='hide', include=FALSE}
 # Do some cleaning before moving on
-rm(rating_year, year_movie, list_genres, rating_movie_year)
+rm(rating_year, year_movie, list_genres, rating_movie_year, genre_comb)
 ```
 
 #### Time stamp
-
-The `timestamp` value gives the time and date when a rating was made. Let's have a look at how ratings have changed with time.  
-In what year where the youngest and oldest rating made? 
-```{r Oldest and youngest ratings}
+  
+The `timestamp` value gives the time and date when a rating was made. How has the frequency of the ratings changed with time?  
+In what year were the youngest and oldest rating made? 
+```{r Oldest and youngest ratings, cache = TRUE}
 # Finding the youngest and oldest ratings.
 birthyear_rating <- train_test  %>%
   mutate(date = as_datetime(timestamp)) %>%
@@ -631,8 +640,8 @@ birthyear_rating <- train_test  %>%
 message("Year of the oldest rating: ", year(min(birthyear_rating$ts_year)))
 message("Year of the youngest rating: ", year(max(birthyear_rating$ts_year)))
 ```
-How has the number of ratings per year evolved over time? Year 2000 has seen the most ratings.
-```{r Number of ratings per year, message = FALSE, fig.align='center'}
+How has the number of ratings per year evolved over time? As the figure below shows, year 2000 has seen the most ratings.
+```{r Number of ratings per year, message = FALSE, fig.align='center', cache = TRUE}
 # Number of ratings done per year
 ratings_year <- birthyear_rating %>%
   group_by(ts_year) %>%
@@ -661,14 +670,14 @@ rm(birthyear_rating, ratings_year)
 First let's define a few important functions which are used throughout the rest of the analysis to measure performance, store performance information and compare models.  
 
 * The **RMSE() function**: this function will calculate the RMSE based on $\hat Y$ and $Y$.
-```{r RMSE function}
+```{r RMSE function, cache = TRUE}
 # Declare RMSE function:
 RMSE <- function(y_predic, y_real){
   sqrt(mean((y_predic-y_real)^2))
 }
 ```
 * The **add_row_results() function** to populate the data frame which will store the various RMSE corresponding to the different models:
-```{r Results data frame and updating fuction}
+```{r Results data frame and updating fuction, cache = TRUE}
 # Create data frame to store the results of the various models
 model_results <- data.frame(
   model_nb = integer(), 
@@ -687,8 +696,8 @@ add_row_results <- function(row, model_nb, new_type, opt_lambda, new_rmse){
   return (model_results)
 }
 ```
-* Finally let's create the **improvement() function** that will calculate the improvement in % between two models:
-```{r Improvement function}
+* Finally let's create the **improvement() function** that will calculate the improvement (in %) between two models:
+```{r Improvement function, cache = TRUE}
 # Returns the variation in % from model_1 rmse to model_2 rmse.
 improvement <- function(model_1, model_2){
   model_results$rmse[model_2]
@@ -698,15 +707,15 @@ improvement <- function(model_1, model_2){
 }
 ```
 
-## Linear models
+## Linear model
 
-Let's model one bias after another using regularisation and check, each time, what is the corresponding RMSE. This will give a good sense of how each bias contributes to the accuracy of the model.
+In this section we will model one bias after another using regularisation and check, each time, what is the corresponding RMSE. This will give us a good sense of how each bias contributes to the accuracy of the model.
 
 ### Naive mean (base model)
 
-Let's start with a very simple algorithm, `naive_mean` which consist in taking the average rating of the training dataset and we apply it to the test set. As the next table shows, the performance of this base model is low. Hopefully adding the different biases will help improve this performance.
+Let's start with a very simple algorithm, `naive_mean` which consists in taking the average rating of the training dataset and applying it to the test set. As the next table shows, the performance of this base model is low. Hopefully adding the different biases will help improve this performance.
 
-```{r Base model - Naive mean, message=FALSE, warning=FALSE}
+```{r Base model - Naive mean, message=FALSE, warning=FALSE, cache = TRUE}
 # First initial models, naive_rmse
 model_nb <- 1
 mu <- mean(train_set$rating)
@@ -721,7 +730,7 @@ kable(model_results, caption = "Summary of results")
 ### Movie effect
 
 The next step is to improve the model by adding the regularised average per movie to the overall average. For each movie the code below calculates the difference between the movie average and the overall average (mu). This difference is the movie bias or movie effect $b_m$ of the model. 
-```{r Movie effect (regularised), message=FALSE, warning=FALSE}
+```{r Movie effect (regularised), message=FALSE, warning=FALSE, cache = TRUE}
 model_nb <- 2
 # Define a sequence of penalisation factor (lambda) for the regularization.
 lambda <- seq(1, 4, 0.5)
@@ -750,7 +759,7 @@ plot(lambda, rmse)
 ```
 
 Let's get the lambda which minimises the RMSE and update the summary table `model_results`.
-```{r}
+```{r Extract best lambda, cache = TRUE}
 best_lbd <- lambda[which.min(rmse)]
 # Store result in the summary dataframe model_results.
 model_results <- add_row_results(
@@ -768,7 +777,7 @@ improvement(1,2)
 ### User effect
 
 The model can be improved one step further by adding the regularised average per user. For each user the code below calculates the difference between the user average and the overall average corrected by the regularised movie average (mu and bm). This difference is the user bias or user effect $b_u$ of the model. 
-```{r User effect (Regularised), message=FALSE, warning=FALSE}
+```{r User effect (Regularised), message=FALSE, warning=FALSE, cache = TRUE}
 model_nb <- 3
 # Define a sequence of penalisation factor (lambda) for the regularization.
 lambda <- seq(3, 7, 0.5)
@@ -804,7 +813,7 @@ plot(lambda, rmse)
 ```
   
   Let's get the lambda which minimises the RMSE and update the summary table `model_results`.
-```{r}
+```{r, cache = TRUE}
 best_lbd <- lambda[which.min(rmse)]
 # Store results in the summary dataframe model_results.
 model_results <- add_row_results(
@@ -821,8 +830,8 @@ improvement(2,3)
 
 ### Genre effect
 
-To improve the model once more the regularised average per genre is added. For each genre the code below calculates the difference between the genre average and the overall average corrected by the regularised movie and user averages (mu, bm and bu). This difference is the genre bias or genre effect $b_g$ of the model. 
-```{r Genre effect (regularised), warning=FALSE, message=FALSE}
+To improve the model further, the regularised average per genre is added. For each genre the code below calculates the difference between the genre average and the overall average corrected by the regularised movie and user averages (mu, bm and bu). This difference is the genre bias or genre effect $b_g$ of the model. 
+```{r Genre effect (regularised), warning=FALSE, message=FALSE, cache = TRUE}
 model_nb <- 4
 # Define a sequence of penalisation factor (lambda) for the regularization.
 lambda <- seq(15, 25, 1)
@@ -880,7 +889,7 @@ improvement(3,4)
 
 Let's add now the next bias, the regularised average per year of the date of release. For each year, the code below calculates the difference between the year average and the overall average corrected by the regularised movie, user and genre averages (mu, bm, bu, bg). This difference is the year bias or year effect $b_y$ of the model.
 
-```{r Release date effect (regularised), message=FALSE, warning=FALSE}
+```{r Release date effect (regularised), message=FALSE, warning=FALSE, cache = TRUE}
 model_nb <- 5
 # Define a sequence of penalisation factor (lambda) for the regularization.
 lambda <- seq(0, 10, 2)
@@ -939,11 +948,9 @@ improvement(4,5)
 
 ### Date of rating effect
 
-Next the regularised date (`timestamp`) of the ratings is added to the model. In this case, we need to regroup the time stamps per period (`week`, `month` or `year`) in order to compute the regularised average.
-For each period, the code below calculates the difference between the period average and the overall average corrected by the regularized movie, user, genre and year averages (mu, bm, bu, bg, by). This difference is the date bias or effect $b_t$ of the model.
-The code below run with a weekly period. Running it for a month or year period would show that the `week` period has the most impact.
+Next the regularised date (`timestamp`) of the ratings is added to the model. In this case, the time stamps need to be grouped by period (`week`, `month` or `year`) in order to compute the regularised average. For each period, the code below calculates the difference between the period average and the overall average corrected by the regularized movie, user, genre and year averages (mu, bm, bu, bg, by). This difference is the date bias or effect, $b_t$, of the model. The code below runs with a weekly period. Running it with a month or year period would show that the `week` period has the most impact.
 
-```{r Date of rating effect (regularised), message=FALSE, warning=FALSE}
+```{r Date of rating effect (regularised), message=FALSE, warning=FALSE, cache = TRUE}
 model_nb <- 6
 # Define a sequence of penalisation factor (lambda) for the regularisation.
 lambda <- c(200, 300, 400, 500, 600, 800)
@@ -1019,15 +1026,17 @@ kable(model_results, caption = "Summary of results")
 # Calculate the improvement between this model and the previous one.
 improvement(5,6)
 ```
-Altogether, adding the genre, year and time has improved the model of about 0.08%, most of the effect being already captured in the movie effect.
+  
+  Altogether, adding the genre, year and time has improved the model of about 0.08%, most of the effect being already captured in the movie effect.
 
 ### Conclusion
 
-By adding successively different biases or effects in such a way that all the information available in the dataset was used, the accuracy of the model has been improved. Some biases have more impact on the accuracy of the model than others. The biases with the most impact are the movie and user biases (more than 18% improvement).
+By adding successively different biases or effects in such a way that all the information available in the dataset was used, the accuracy of the model has been improved. Some biases have more impact on the accuracy of the model than others. The biases with the most impact are the movie and user biases (improvement of more than 18% on the naive mean model).
 ```{r Improvement base model vs. movie+user reg bias}
 round(improvement(1,3),2)
 ```
-The genre, year and time stamp biases had little impact on the accuracy of the model (less than 0.1%).
+  
+  The genre, year and time stamp biases had little impact on the accuracy of the model (less than 0.1%).
 ```{r Improvement movie + user bias vs. all the biases}
 round(improvement(3,6),2)
 ```
@@ -1048,9 +1057,9 @@ The workflow in r to run a matrix factorisation algorithm with the `recosystem` 
 
 5. Validation of the model  
 
-To operate, the `recosystem` requires as input a 3-columns matrix corresponding to the users, movies, and rating. Let's build this. The function `data_memory()` is used to provide input to the recommender system. Help on how to use this function is available using the command `?recosystem::data_memory` in the R console.
+To operate, the `recosystem` requires as input a 3-columns matrix corresponding to the users, movies, and ratings. Let's build this. The function `data_memory()` is used to provide input to the recommender system. Help on how to use this function is available using the command `?recosystem::data_memory` in the R console.
 
-```{r Matrix factorisation - create train and test matries}
+```{r Matrix factorisation - create train and test matries, cache = TRUE}
 # Load the corresponding package
 library(recosystem)
 
@@ -1065,11 +1074,12 @@ reco_test <- data_memory(user_index = test_set$userId,
 
 ```
 
-Next the model object must be created using the function `Reco()` which returns a class RecoSys object which makes the methods `$train()`, `$tune()` and `$predict()` accessible. Help on this function is available using the command `?recosystem::Reco`.
-```{r Create RecoSys object}
+Next the model object must be created using the function `Reco()` which returns a object of class RecoSys which makes the methods `$train()`, `$tune()` and `$predict()` accessible. Help on this function is available using the command `?recosystem::Reco`.
+```{r Create RecoSys object, cache = TRUE}
 reco_obj <- Reco()
 ```
-It is now time to train the model with the method `$train()`. Helps on this function (`?recosystem::train`) indicates that the methods uses as input arguments:
+  
+  It is now time to train the model with the method `$train()`. Helps on this function (`?recosystem::train`) indicates that the methods uses as input the following arguments:
 
 * `train_data`: an object of class `DataSource` usually returned by `data_memory()`. That's good, since this input is available (`reco_train`),
 * `out_model`: the path to the output model file that will be created,
@@ -1078,15 +1088,15 @@ The algorithm will be run twice, once without prior tuning, and a second time af
 
 ### Training without parameter tuning
 
-For the first attempt, the default options `opts` are used, except for the number of thread, which is set at 4 to increase computing speed, and the number of iteration, `niter`, sets at 10 instead of the default value of 20.
+For the first attempt, the default options `opts` are used, except for the number of threads, which is set at 4 to lower computing time, and the number of iteration, `niter`, sets at 10 instead of the default value of 20.
 
-```{r Train with 10 iterations}
+```{r Train with 10 iterations, cache = TRUE}
 # Train the algorithm with the default options except for niter 
 # and nthread, without tuning
 reco_obj$train(reco_train, opts = c(nthread = 4, niter = 10))
 ```
 
-```{r}
+```{r Calculate predictions, cache = TRUE}
 # Calculate predicted values with 10 iterations
 reco_preds <- reco_obj$predict(reco_test, out_memory())
 rmse <- RMSE(reco_preds, test_set$rating)
@@ -1102,13 +1112,13 @@ kable(model_results, caption = "Summary of results")
 ```
   
   Out of curiosity, let's make another attempt with 20 iterations.
-```{r Train with 20 iterations}
+```{r Train with 20 iterations, cache = TRUE}
 model_nb <- 8
 # Train the algorithm with the default options except for nthread, without tuning
 reco_obj$train(reco_train, opts = c(nthread = 4, niter = 20))
 ```
 
-```{r}
+```{r Calculate prediction with new model, cache = TRUE}
 # Calculate predicted values
 reco_preds <- reco_obj$predict(reco_test, out_memory())
 rmse <- RMSE(reco_preds, test_set$rating)
@@ -1118,8 +1128,8 @@ model_results <- add_row_results(
 # Display results
 kable(model_results, caption = "Summary of results")
 ```
-
-By increasing the number of iteration from 10 to 20 the accuracy of the model is increased by about 1%
+  
+  By increasing the number of iteration from 10 to 20 the accuracy of the model is increased by about 1%
 ```{r}
 # Calculate the improvement between this model and the previous one.
 improvement(7, 8)
@@ -1127,16 +1137,15 @@ improvement(7, 8)
 
 ### Training with parameter tuning
 
-```{r, eval=local_data, echo=FALSE, include=FALSE}
+```{r Download saved reco model, eval=local_data, echo=FALSE, include=FALSE, cache = TRUE}
 # If local_data this block is executed and the tuning parameters 
 # reco-opts.rds gets loaded and used.
 opts <- readRDS("data/reco-opts.rds")
 ```
 
-Now before training the model, let's use the `$tune` method to try and improve the accuracy of the model. For detailed information about the parameters of the function, type `?recosystem::tune`.
-This step takes time to compute, so be patient.
+This time the `$tune` method is used to try and improve the accuracy of the model. For detailed information about the parameters of the function, type `?recosystem::tune`. This step takes time to compute, so be patient.
 
-```{r Run tunning function, eval=!local_data, message=FALSE, warning=FALSE}
+```{r Run tunning function, eval=!local_data, message=FALSE, warning=FALSE, cache = TRUE}
 # Run the tuning function to generate optimised parameters. This takes time.
 opts <- reco_obj$tune(reco_train, opts = list(nthread  = 4, niter = 10))
 
@@ -1147,13 +1156,13 @@ saveRDS(opts, file = "data/reco-opts.rds")
 ```
 
 The model is trained with the resulting tuning parameters in `opts$min`.
-```{r Train model with optimised parameters, message=FALSE, warning=FALSE}
+```{r Train model with optimised parameters, message=FALSE, warning=FALSE, cache = TRUE}
 model_nb <- 9
 # Train the algorithm with the default options except for nthread, with tuning
 reco_obj$train(reco_train, opts = c(opts$min, nthread = 4, niter = 20))
 ```
 
-```{r}
+```{r Calculate new predictions with tuned model, cache = TRUE}
 # Calculate predicted values
 reco_preds <- reco_obj$predict(reco_test, out_memory())
 rmse <- RMSE(reco_preds, test_set$rating)
@@ -1172,16 +1181,16 @@ improvement(8, 9)
 
 # `r I(sec_four)`
 
-This section presents the results and discusses the performance of the models. The **validation set** is now used to estimate these performances. Because the set has not been used so far, these performances can be considered an unbiased estimate of the performance of the models on new data.
+This section presents the results and discusses the performance of the two models. The **validation set** is now used to estimate these performances. Because this set has not been used so far, these performances can be considered as unbiased estimates of how the models would perform on new data.
 
 ## Linear model
 
 Let's apply the linear model to the varaibles in the validation set and compare the prediction $\hat Y$ with the real ratings $Y$ of the dataset. 
 
-```{r RMSE Linear Model applied to validation set, message=FALSE, warning=FALSE}
+```{r RMSE Linear Model applied to validation set, message=FALSE, warning=FALSE, cache = TRUE}
 validation <- validation %>% mutate(date = as_datetime(timestamp))
 
-# Apply all the biases to the variables in the validation set.
+# Apply all the biases to the validation set.
 mugyd_preds <- validation %>%
   left_join(movie_reg_avg, by="movieId") %>%
   left_join(user_reg_avg, by="userId") %>%
@@ -1196,9 +1205,8 @@ mugyd_preds <- validation %>%
 rmse_LM <- RMSE(validation$rating, mugyd_preds)
 rmse_LM
 ```
-
-The linear model provides a RMSE of `r I(round(rmse_LM, 5))` on the validation set.
-
+  
+  The linear model provides a RMSE of `r I(round(rmse_LM, 5))` on the validation set.
 ```{r}
 # Update model_results
 model_nb <- 10
@@ -1209,7 +1217,7 @@ kable(model_results, caption = "Summary of results")
 
 ## Matrix factorisation
 
-```{r RMSE Matrix Factorisation model applied to validation set,  message=FALSE, warning=FALSE}
+```{r RMSE Matrix Factorisation model applied to validation set,  message=FALSE, warning=FALSE, cache = TRUE}
 
 # Prepare the validation data in the suitable format.
 reco_validation <- data_memory(user_index = validation$userId,
