@@ -3,6 +3,12 @@ title: "MovieLens Machine Learning Tutorial"
 author: "Vincent G. Kienzler"
 date: "18/11/2019"
 output:
+  pdf_document:
+    number_section: yes
+    highlight: tango
+    toc: true
+    toc_depth: 3
+    fig_crop: no
   html_document:
     theme: cosmo
     number_section: yes
@@ -11,13 +17,8 @@ output:
     toc_float:
         collapsed: false
         smooth_scroll: false
-  pdf_document:
-    number_section: yes
-    highlight: tango
-    toc: true
-    toc_depth: 3
-    fig_crop: no
 ---
+<style> .math { font-size: small; } </style>
 
 ```{r setup, include=FALSE, purl=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -94,24 +95,30 @@ This document is organised as follows:
 
 # `r I(sec_one)` 
 
-## Methods applied  
+## Methods applied
 
-The general purpose of statistical or machine learning is to provide an estimate for the relationship $f$ between an outcome $Y$ and a set of predictors $X_1,\cdots,X_p$ defined such that:
+### Reminders
+
+The general purpose of machine learning is to provide an estimate for the relationship $f$ between an outcome $Y$ and a set of predictors $X_1,\cdots,X_p$ defined such that:
 $${Y} = f(X_1,\cdots,X_p) + \epsilon_i$$
-$\epsilon_i$ is the difference, or error, between $f(X_1,\cdots,X_p)$ and the real value $Y$. It is due to the fact that the predictors $X_1,\cdots,X_p$ might not suffice to calculate exactly $Y$.
+$\epsilon_i$ is the difference, or error, between $f(X_1,\cdots,X_p)$ and the real value $Y$. Here, the $i$ of $\epsilon$ stands for "irreducible". It means that, even if the perfect $f$ was ever identified, this error would still exist and be different from $0$. This is due to the fact that the predictors $X_1,\cdots,X_p$ might not suffice to calculate exactly $Y$, simply because $Y$ might be determined by unknown predictors other than $X_1,\cdots,X_p$. For instance, the heights of parents can help predict the heights of their kids (taller parents would tend to have taller kids). However, is the heights of the parents enough to predict those of the kids? Obviously not, many other factors might also influence this outcome: the kids' age, for one, but also their gender, diet, etc.  
 
-Knowing $\hat f$ (the notation $\hat f$ is used to denote an estimate of $f$) is useful for two reasons. It can be used to understand better how the predictors influence the outcome (*inference*). It can also be used to predict values of $Y$ from the predictors (*prediction*). Once an estimate for $f$ is available, $\hat Y$, an estimate of $Y$, can be calculated:
+In addition, $f$ is unknown. It is only a concept at this point. All the work of a data-scientist consists in identifying this $f$ as accurately as possible. Unfortunately, chances are that $f$ can only be approximated. This approximation, or estimate, is referred to as $\hat f$.  
+
+Knowing $f$ (or rather $\hat f$, an estimate) can be useful for two reasons. It can be used to understand better how the predictors influence the outcome (*inference*), when $\hat f$ takes a form that can be interpreted by a human intelligence. It can also be used to predict values of $Y$ from the predictors (*prediction*). Once an estimate for $f$ is available, an estimate of $Y$ can be calculated:
 $$\hat{Y} = \hat f(X_1,\cdots,X_p)$$
 $$Y = \hat Y + \epsilon$$
-$\epsilon$ is the difference, or error, between the estimate $\hat{Y}$ and the real value $Y$. It is made of two parts: the *reducible* error ($\epsilon_r$), and the *irreducible* error ($\epsilon_i$).
+Here $\epsilon$ is the difference, or error, between the estimate $\hat{Y}$ and the real value $Y$. It is made of two parts: the *reducible* error ($\epsilon_r$), and the *irreducible* error ($\epsilon_i$), already introduced.
 $$\epsilon = \epsilon_i + \epsilon_r$$
-$\epsilon_i$ cannot be reduced because $Y$ might be determined by unknown predictors other than $X_1,\cdots,X_p$. Even if and when $f$ = $\hat f$, it is not equal to 0.  
+$\epsilon_i$ cannot be reduced, even if and when $f$ = $\hat f$, it is not equal to 0.  
 
 $\epsilon_r$ can be reduced and depends on the quality of the machine learning algorithm used to calculate $\hat f$. It is equal to 0 if and only if $f$ = $\hat f$.  
 
-All the work of developing a machine learning model consists in identifying $\hat f$ in such a way that the error $\epsilon$ is as small as possible. The question therefore becomes: what shape should $f$ take?  
+All the work of developing a machine learning model consists in identifying $\hat f$ in such a way that the error $\epsilon$ is as small as possible. The central question of any machine learning challenge is therefore: what shape should $f$ take?  
 
-In this tutorial two models are developed. They are detailed next. 
+In this tutorial two models are developed and their respective errors calculated. As it will become clear by the end of this tutorial, not all models are born equal. Some models are good at predicting outcomes, but are difficult to interpret (inference). Others are just the opposite: they make it easy to understand what influences an outcome, but are less good at predicting it.  
+
+These two models are detailed next. 
 
 ### Linear modelling
 
@@ -1248,14 +1255,15 @@ round(improvement(10, 11),3)
 
 # `r I(sec_five)`
 
-In this tutorial, the typical workflow of a data-science project has been introduced and followed. Two models have been developed, trained, tuned and applied to the publicly available "MovieLens 10M" dataset.  
+In this tutorial, the typical workflow of a data-science project has been introduced and followed. Two models have been developed, trained, tuned and applied to the publicly available "MovieLens 10M" dataset to make movie predictions.  
 
-The first model, a linear regression with regularisation applied to categorical features (movie, user, genre, year of movie release, date of rating), has shown that the variables `userId` and `movieId` were the most influencial to estimate ratings. The genre, year and date contributed to a much smaller extent. This can be explained by the fact that the movie variable already includes most of the effect of year and genres (the year and genre effects are already included in the movie effect which has been calculated sooner). An easy way to test this hypothesis is to re-run the linear model by starting with the genre bias instead of the movie bias, and to measure the improvement from the naive model. Doing so would show that introducing the genre bias first causes a 4% improvement, confirming this hypothesis.   
+The first model, a **linear regression** with regularisation applied to categorical features (movie, user, genre, year of movie release, date of rating), has shown that the variables `userId` and `movieId` were the most influencial to estimate ratings. The genre, year and date contributed to a much smaller extent. This can be explained by the fact that the movie variable already includes most of the effect of year and genres (the year and genre effects are already included in the movie effect which has been calculated sooner). An easy way to test this hypothesis is to re-run the linear model by starting with the genre bias instead of the movie bias, and to measure the improvement from the naive model. Doing so would show that introducing the genre bias first causes a 4% improvement, confirming this hypothesis.   
 
-The second model, based on matrix factorisation, proved more accurate at predicting ratings. However, it is a black box and this approach did not provide any insight about how the various features in the dataset influence ratings. The main reason why this model is more accurate is largely because every observation in the dataset is considered an input for any prediction. In the linear models, only aggregated values (averages) where used for the predictions.  
+The second model, based on **matrix factorisation**, proved more accurate at predicting ratings. However, it is a black box and this approach did not provide any insight about how the various features in the dataset influence ratings. The main reason why this model is more accurate is largely because every observation in the dataset is considered an input for any prediction. In the linear models, only aggregated values (averages) where used for the predictions.  
 
 Both models used only historical data. It is possible to improve further the prediction of a recommender model by adding other information about the viewers, such as their gender, ethnicity, age and location, which most current recommender models do.
 
+In the section "reminders", two important functions of machine learning models have been introduced: *inference* and *prediction.* From the point of view of error comparison, it is clear that matrix factorisation does a much better job at predicting movie ratings. However, it is a complete black box: the model provides no easily accessible indication of what influences these predictions. On the other hand the linear model is not as good at predicting ratings, but it is much easier to interpret. The user can easily see what impacts movie ratings the most: movie, user, or any of the other predictors. In most cases prediction accuracy is the most important criteria, but this is not always the case. In the banking industry, for example, where machine learning algorithms can be used to predict the likelyhood of default before authorising a loan to a client, the legislations of some countries impose that these machine learning algorithms be easily understandable by any human intelligence, for transparency and fairness reason: the bankers must be in a position to explain clearly why a client has not be offered a loan.
 
 
 
